@@ -6,6 +6,7 @@ import 'package:unscroll/app/app.dart';
 import 'package:unscroll/app/providers.dart';
 import 'package:unscroll/core/permissions/permission_service.dart';
 import 'package:unscroll/core/platform_capabilities/capability.dart';
+import 'package:unscroll/core/platform_capabilities/native_services.dart';
 import 'package:unscroll/core/platform_capabilities/platform_capability_service.dart';
 import 'package:unscroll/core/storage/app_settings.dart';
 
@@ -33,8 +34,18 @@ class FakePlatform implements PlatformCapabilityService, PermissionService {
   Future<PermissionRequestResult> request(AppPermission permission) async {
     requested.add(permission);
     usageAccess = 'granted';
-    return const PermissionRequestResult(PermissionRequestOutcome.openedSettings);
+    return const PermissionRequestResult(
+      PermissionRequestOutcome.openedSettings,
+    );
   }
+}
+
+class NoRestrictions implements RestrictionService {
+  const NoRestrictions();
+  @override
+  Future<TokenSelectionSummary?> setShieldActive(bool active) async => null;
+  @override
+  Future<void> syncBudgets(Map<String, ManagedApp> apps) async {}
 }
 
 Future<(SharedPreferences, FakePlatform)> pumpApp(
@@ -50,6 +61,7 @@ Future<(SharedPreferences, FakePlatform)> pumpApp(
         settingsStoreProvider.overrideWithValue(PrefsSettingsStore(prefs)),
         capabilityServiceProvider.overrideWithValue(platform),
         permissionServiceProvider.overrideWithValue(platform),
+        restrictionServiceProvider.overrideWithValue(const NoRestrictions()),
       ],
       child: const UnscrollApp(),
     ),
@@ -68,7 +80,10 @@ Future<void> tapNext(WidgetTester tester, String label) async {
 void main() {
   testWidgets('onboarding saves choices and opens Home', (tester) async {
     final (prefs, platform) = await pumpApp(tester);
-    expect(find.text('Use what matters. Block what distracts.'), findsOneWidget);
+    expect(
+      find.text('Use what matters. Block what distracts.'),
+      findsOneWidget,
+    );
 
     await tapNext(tester, 'Get started');
     await tester.tap(find.text('Better sleep'));
@@ -98,7 +113,9 @@ void main() {
     expect(saved.frictionMode, FrictionMode.strict);
   });
 
-  testWidgets('returning users skip onboarding; all five tabs open', (tester) async {
+  testWidgets('returning users skip onboarding; all five tabs open', (
+    tester,
+  ) async {
     await pumpApp(tester, initial: _onboarded);
     expect(find.widgetWithText(AppBar, 'Home'), findsOneWidget);
     for (final tab in ['Apps', 'Focus', 'Insights', 'Settings', 'Home']) {
@@ -108,7 +125,9 @@ void main() {
     }
   });
 
-  testWidgets('unavailable features explain themselves and show no switch', (tester) async {
+  testWidgets('unavailable features explain themselves and show no switch', (
+    tester,
+  ) async {
     await pumpApp(tester, initial: _onboarded);
     await tester.tap(find.widgetWithText(NavigationDestination, 'Settings'));
     await tester.pumpAndSettle();
@@ -119,13 +138,19 @@ void main() {
     await tester.pumpAndSettle();
 
     final reason = find.text('Other apps do not allow this.');
-    await tester.scrollUntilVisible(reason, 200, scrollable: find.byType(Scrollable).last);
+    await tester.scrollUntilVisible(
+      reason,
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
     expect(reason, findsOneWidget);
     expect(find.text('Third-party app limitation'), findsOneWidget);
     expect(find.byType(Switch, skipOffstage: false), findsNothing);
   });
 
-  testWidgets('deleting data clears storage and returns to onboarding', (tester) async {
+  testWidgets('deleting data clears storage and returns to onboarding', (
+    tester,
+  ) async {
     final (prefs, _) = await pumpApp(tester, initial: _onboarded);
     await tester.tap(find.widgetWithText(NavigationDestination, 'Settings'));
     await tester.pumpAndSettle();
@@ -136,7 +161,10 @@ void main() {
     await tester.tap(find.text('Delete data'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Use what matters. Block what distracts.'), findsOneWidget);
+    expect(
+      find.text('Use what matters. Block what distracts.'),
+      findsOneWidget,
+    );
     expect(prefs.getKeys(), isEmpty);
   });
 }

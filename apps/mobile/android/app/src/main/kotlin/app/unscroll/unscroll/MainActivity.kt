@@ -1,7 +1,10 @@
 package app.unscroll.unscroll
 
+import app.unscroll.unscroll.apps.InstalledApps
 import app.unscroll.unscroll.capabilities.CapabilityReporter
 import app.unscroll.unscroll.permissions.PermissionGateway
+import app.unscroll.unscroll.reminders.BudgetReminders
+import app.unscroll.unscroll.usage.UsageReader
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -26,9 +29,31 @@ class MainActivity : FlutterActivity() {
                         val outcome = permissions.request(call.argument<String>("permission"))
                         if (outcome != null) result.success(outcome) else pendingPermissionResult = result
                     }
+                    "listInstalledApps" -> guarded(result) { InstalledApps(this).list() }
+                    "getUsageReport" -> guarded(result) {
+                        if (!permissions.hasUsageAccess()) throw SecurityException("no usage access")
+                        UsageReader(this).report()
+                    }
+                    "syncBudgets" -> guarded(result) {
+                        @Suppress("UNCHECKED_CAST")
+                        val budgets = call.argument<Map<String, Map<String, Any?>>>("budgets") ?: emptyMap()
+                        BudgetReminders.sync(this, budgets)
+                        null
+                    }
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    /** A native failure becomes a channel error the Dart side handles; it never crashes the app. */
+    private fun guarded(result: MethodChannel.Result, block: () -> Any?) {
+        try {
+            result.success(block())
+        } catch (e: SecurityException) {
+            result.error("not_authorized", e.message, null)
+        } catch (e: Exception) {
+            result.error("native_failure", e.message, null)
+        }
     }
 
     override fun onRequestPermissionsResult(

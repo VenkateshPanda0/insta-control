@@ -76,7 +76,10 @@ class _PermissionCard extends ConsumerWidget {
           Row(
             children: [
               Expanded(
-                child: Text(permission.title, style: theme.textTheme.titleMedium),
+                child: Text(
+                  permission.title,
+                  style: theme.textTheme.titleMedium,
+                ),
               ),
               StatusPill(state.label, positive: granted),
             ],

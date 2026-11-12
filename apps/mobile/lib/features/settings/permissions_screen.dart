@@ -11,7 +11,10 @@ class PermissionsScreen extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Permissions')),
     body: const PageBody(
-      children: [SizedBox(height: Space.md), PermissionList()],
+      children: [
+        SizedBox(height: Space.md),
+        PermissionList(),
+      ],
     ),
   );
 }

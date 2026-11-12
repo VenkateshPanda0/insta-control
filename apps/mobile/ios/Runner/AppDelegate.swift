@@ -4,6 +4,8 @@ import UserNotifications
 
 #if canImport(FamilyControls)
 import FamilyControls
+import ManagedSettings
+import SwiftUI
 #endif
 
 @main
@@ -33,6 +35,23 @@ enum PlatformChannel {
       case "requestPermission":
         let args = call.arguments as? [String: Any]
         requestPermission(args?["permission"] as? String, result)
+      case "presentAppPicker", "getSelectionSummary", "setShieldActive":
+        #if canImport(FamilyControls)
+        if #available(iOS 16.0, *) {
+          switch call.method {
+          case "presentAppPicker":
+            ScreenTime.presentPicker(result)
+          case "setShieldActive":
+            let args = call.arguments as? [String: Any]
+            ScreenTime.setShieldActive(args?["active"] as? Bool ?? false)
+            result(ScreenTime.summary())
+          default:
+            result(ScreenTime.summary())
+          }
+          return
+        }
+        #endif
+        result(FlutterError(code: "unavailable", message: "Needs iOS 16 or later.", details: nil))
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -79,22 +98,26 @@ enum PlatformChannel {
   }
 
   private static func capabilities() -> [String: [String: String]] {
-    let screenTime: [String: String]
+    let needsExtension = entry(
+      "unavailable", "unscrollBuild",
+      "Needs Unscroll's Screen Time extensions, which are not part of this build yet.")
+    var selection = entry(
+      "unavailable", "ios", "Needs iOS 16 or later for Screen Time access on your own device.")
     if #available(iOS 16.0, *) {
-      screenTime = entry(
-        "unavailable", "unscrollBuild",
-        "Uses Apple's Screen Time tools, which need Apple's Family Controls entitlement. "
-          + "This is not built into this version yet.")
-    } else {
-      screenTime = entry(
-        "unavailable", "ios",
-        "Needs iOS 16 or later for Screen Time access on your own device.")
+      if screenTimeState() == "granted" {
+        selection = entry(
+          "experimental", "none",
+          "Uses Apple's Screen Time. Not yet verified on a physical iPhone.")
+      } else {
+        selection = entry(
+          "requiresAuthorization", "none", "Allow Screen Time access in Permissions first.")
+      }
     }
     return [
-      "usageReporting": screenTime,
-      "appSelection": screenTime,
-      "appBlocking": screenTime,
-      "scheduledRestrictions": screenTime,
+      "usageReporting": needsExtension,
+      "appSelection": selection,
+      "appBlocking": selection,
+      "scheduledRestrictions": needsExtension,
       "launchInterception": entry(
         "unavailable", "ios",
         "iOS does not let an app step in whenever another app opens. "
@@ -158,3 +181,100 @@ enum PlatformChannel {
     result(["outcome": "failed", "message": "Screen Time access needs iOS 16 or later."])
   }
 }
+
+#if canImport(FamilyControls)
+/// App selection and shields through Apple's Screen Time frameworks.
+/// The chosen apps are opaque tokens: Unscroll can count them and hand them
+/// back to the system, but cannot see which apps they are.
+@available(iOS 16.0, *)
+enum ScreenTime {
+  /// Shared with the extensions once the App Group is configured.
+  static let defaults = UserDefaults(suiteName: "group.app.unscroll.unscroll") ?? .standard
+  private static let selectionKey = "selection"
+  private static let shieldKey = "shieldActive"
+  private static let store = ManagedSettingsStore()
+
+  static func loadSelection() -> FamilyActivitySelection {
+    guard let data = defaults.data(forKey: selectionKey),
+      let selection = try? PropertyListDecoder().decode(FamilyActivitySelection.self, from: data)
+    else { return FamilyActivitySelection() }
+    return selection
+  }
+
+  static func saveSelection(_ selection: FamilyActivitySelection) {
+    defaults.set(try? PropertyListEncoder().encode(selection), forKey: selectionKey)
+    if defaults.bool(forKey: shieldKey) { applyShield() }
+  }
+
+  static func setShieldActive(_ active: Bool) {
+    defaults.set(active, forKey: shieldKey)
+    if active { applyShield() } else { clearShield() }
+  }
+
+  static func applyShield() {
+    let selection = loadSelection()
+    store.shield.applications =
+      selection.applicationTokens.isEmpty ? nil : selection.applicationTokens
+    store.shield.applicationCategories =
+      selection.categoryTokens.isEmpty ? nil : .specific(selection.categoryTokens)
+    store.shield.webDomains = selection.webDomainTokens.isEmpty ? nil : selection.webDomainTokens
+  }
+
+  static func clearShield() {
+    store.shield.applications = nil
+    store.shield.applicationCategories = nil
+    store.shield.webDomains = nil
+  }
+
+  static func summary() -> [String: Any] {
+    let selection = loadSelection()
+    return [
+      "apps": selection.applicationTokens.count,
+      "categories": selection.categoryTokens.count,
+      "webDomains": selection.webDomainTokens.count,
+      "shieldActive": defaults.bool(forKey: shieldKey),
+    ]
+  }
+
+  static func presentPicker(_ result: @escaping FlutterResult) {
+    let root = UIApplication.shared.connectedScenes
+      .compactMap { ($0 as? UIWindowScene)?.keyWindow }
+      .first?.rootViewController
+    guard let presenter = root else {
+      result(FlutterError(code: "no_window", message: "Could not show the app picker.", details: nil))
+      return
+    }
+    var host: UIViewController?
+    let screen = PickerScreen(selection: loadSelection()) { chosen in
+      if let chosen = chosen { saveSelection(chosen) }
+      host?.dismiss(animated: true) { result(summary()) }
+    }
+    let controller = UIHostingController(rootView: screen)
+    controller.isModalInPresentation = true
+    host = controller
+    presenter.present(controller, animated: true)
+  }
+}
+
+@available(iOS 16.0, *)
+private struct PickerScreen: View {
+  @State var selection: FamilyActivitySelection
+  let onFinish: (FamilyActivitySelection?) -> Void
+
+  var body: some View {
+    NavigationView {
+      FamilyActivityPicker(selection: $selection)
+        .navigationTitle("Choose apps")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+          ToolbarItem(placement: .cancellationAction) {
+            Button("Cancel") { onFinish(nil) }
+          }
+          ToolbarItem(placement: .confirmationAction) {
+            Button("Done") { onFinish(selection) }
+          }
+        }
+    }
+  }
+}
+#endif

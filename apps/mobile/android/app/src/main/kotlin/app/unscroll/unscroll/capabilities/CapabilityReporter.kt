@@ -17,21 +17,38 @@ class CapabilityReporter(private val permissions: PermissionGateway) {
     )
 
     private fun capabilities(): Map<String, Map<String, String>> {
-        val usageNote = if (permissions.hasUsageAccess()) {
-            "Usage access is allowed. Reading and showing usage is not built into this version yet."
+        val usage = if (permissions.hasUsageAccess()) {
+            entry(
+                "supportedWithLimitations", "android",
+                "Measured by Android. Covers apps you can open from the launcher; Android may " +
+                    "keep less than seven days of history.",
+            )
         } else {
-            "Needs usage access, and reading usage is not built into this version yet."
+            entry("requiresAuthorization", "none", "Allow usage access in Permissions to see your usage.")
+        }
+        val reminders = when {
+            !permissions.hasUsageAccess() ->
+                entry("requiresAuthorization", "none", "Needs usage access to know when a budget is reached.")
+            !permissions.notificationsEnabled() ->
+                entry("requiresAuthorization", "none", "Allow notifications in Permissions to get reminders.")
+            else -> entry(
+                "supportedWithLimitations", "android",
+                "Android checks budgets in the background about every 15 minutes, and less often " +
+                    "when saving battery, so a reminder can arrive late.",
+            )
         }
         return mapOf(
-            "usageReporting" to notBuilt(usageNote),
-            "appSelection" to notBuilt(
-                "Android can list installed apps. The app picker is not built into this version yet.",
+            "usageReporting" to usage,
+            "appSelection" to entry("supported", "none", "Shows apps you can open from the launcher."),
+            "appBlocking" to entry(
+                "unavailable", "android",
+                "Android has no official app-blocking API for apps like Unscroll. The known " +
+                    "workarounds (accessibility services, screen overlays) are restricted by " +
+                    "Google Play policy, so Unscroll does not use them.",
             ),
-            "appBlocking" to notBuilt(
-                "Android has no single official app-blocking API for apps like Unscroll. " +
-                    "The approach is still being assessed against Google Play policy.",
+            "scheduledRestrictions" to entry(
+                "unavailable", "android", "Depends on app blocking, which Android does not offer.",
             ),
-            "scheduledRestrictions" to notBuilt("Depends on app restrictions, which are not built yet."),
             "launchInterception" to entry(
                 "unavailable", "android",
                 "Android does not offer a supported way for a wellbeing app to step in " +
@@ -41,7 +58,7 @@ class CapabilityReporter(private val permissions: PermissionGateway) {
                 "unavailable", "thirdPartyApp",
                 "Other apps do not let outside apps change or hide parts of their screens.",
             ),
-            "reminders" to notBuilt("Reminder notifications are not built into this version yet."),
+            "reminders" to reminders,
             "focusSessions" to notBuilt("Focus sessions are not built into this version yet."),
         )
     }

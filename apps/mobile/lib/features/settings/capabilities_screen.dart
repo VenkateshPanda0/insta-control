@@ -12,8 +12,8 @@ class CapabilitiesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final registry = ref.watch(capabilityRegistryProvider);
     final report = registry.report;
-    final device = report.error ??
-        '${report.platform} ${report.osVersion}'.trim();
+    final device =
+        report.error ?? '${report.platform} ${report.osVersion}'.trim();
     return Scaffold(
       appBar: AppBar(title: const Text('Device capabilities')),
       body: RefreshIndicator(

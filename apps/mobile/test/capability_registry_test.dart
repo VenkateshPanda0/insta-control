@@ -23,7 +23,11 @@ void main() {
     final report = PlatformReport.fromMap({
       'platform': 'Android',
       'osVersion': '15',
-      'permissions': {'usageAccess': 'granted', 'madeUp': 'granted', 'notifications': 7},
+      'permissions': {
+        'usageAccess': 'granted',
+        'madeUp': 'granted',
+        'notifications': 7,
+      },
       'capabilities': {
         'usageReporting': {'status': 'supported', 'reason': 'ok'},
         'appBlocking': {
@@ -38,8 +42,14 @@ void main() {
     });
     final registry = CapabilityRegistry(report);
 
-    expect(registry.permission(AppPermission.usageAccess), PermissionState.granted);
-    expect(registry.permission(AppPermission.notifications), PermissionState.unavailable);
+    expect(
+      registry.permission(AppPermission.usageAccess),
+      PermissionState.granted,
+    );
+    expect(
+      registry.permission(AppPermission.notifications),
+      PermissionState.unavailable,
+    );
     expect(registry.of(FeatureId.usageReporting).isUsable, isTrue);
 
     final blocking = registry.of(FeatureId.appBlocking);
@@ -48,8 +58,14 @@ void main() {
     expect(blocking.isUsable, isFalse);
 
     // Bad status / wrong shape must not be read as support.
-    expect(registry.of(FeatureId.reminders).status, CapabilityStatus.unavailable);
-    expect(registry.of(FeatureId.focusSessions).status, CapabilityStatus.unavailable);
+    expect(
+      registry.of(FeatureId.reminders).status,
+      CapabilityStatus.unavailable,
+    );
+    expect(
+      registry.of(FeatureId.focusSessions).status,
+      CapabilityStatus.unavailable,
+    );
   });
 
   test('every feature id has a catalog entry', () {

@@ -16,8 +16,7 @@ class CapabilityRegistry {
       return Capability(
         feature: feature,
         status: CapabilityStatus.unavailable,
-        reason:
-            report.error ?? 'This device did not confirm support for this.',
+        reason: report.error ?? 'This device did not confirm support for this.',
       );
     }
     return Capability(

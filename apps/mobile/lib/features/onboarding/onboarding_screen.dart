@@ -83,7 +83,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       _Bullet(
                         Icons.tune,
                         'Set limits and focus times that fit how you actually '
-                            'use your phone.',
+                        'use your phone.',
                       ),
                       _Bullet(
                         Icons.lock_outline,
@@ -92,13 +92,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       _Bullet(
                         Icons.verified_outlined,
                         'Unscroll only shows controls your device can really '
-                            'enforce, and tells you when it cannot.',
+                        'enforce, and tells you when it cannot.',
                       ),
                     ],
                   ),
                   _Page(
                     title: 'What would you like to change?',
-                    subtitle: 'Pick any that apply. You can change these later.',
+                    subtitle:
+                        'Pick any that apply. You can change these later.',
                     children: [
                       for (final g in goalOptions)
                         _ChoiceTile(
@@ -189,7 +190,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   FilledButton(
                     onPressed: last ? _finish : () => _go(_page + 1),
                     child: Text(
-                      last ? 'Open Unscroll' : (_page == 0 ? 'Get started' : 'Continue'),
+                      last
+                          ? 'Open Unscroll'
+                          : (_page == 0 ? 'Get started' : 'Continue'),
                     ),
                   ),
                 ],
@@ -279,7 +282,9 @@ class _ChoiceTile extends StatelessWidget {
         selected: selected,
         button: true,
         child: Material(
-          color: selected ? scheme.secondaryContainer : scheme.surfaceContainerLow,
+          color: selected
+              ? scheme.secondaryContainer
+              : scheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(Radii.control),
           clipBehavior: Clip.antiAlias,
           child: ListTile(

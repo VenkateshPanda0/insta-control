@@ -223,7 +223,9 @@ class PlatformReport {
       rawPermissions.forEach((key, value) {
         final permission = _byName(AppPermission.values, key);
         final state = _byName(PermissionState.values, value);
-        if (permission != null && state != null) permissions[permission] = state;
+        if (permission != null && state != null) {
+          permissions[permission] = state;
+        }
       });
     }
     final capabilities = <FeatureId, CapabilityReport>{};
@@ -243,7 +245,9 @@ class PlatformReport {
       });
     }
     return PlatformReport(
-      platform: map['platform'] is String ? map['platform'] as String : 'unknown',
+      platform: map['platform'] is String
+          ? map['platform'] as String
+          : 'unknown',
       osVersion: map['osVersion'] is String ? map['osVersion'] as String : '',
       permissions: permissions,
       capabilities: capabilities,

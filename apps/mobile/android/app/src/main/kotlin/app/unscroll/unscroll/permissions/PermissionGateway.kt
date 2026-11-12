@@ -19,22 +19,9 @@ class PermissionGateway(private val activity: Activity) {
         NOTIFICATIONS to notificationState(),
     )
 
-    fun hasUsageAccess(): Boolean {
-        val appOps = activity.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
-        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            appOps.unsafeCheckOpNoThrow(
-                AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), activity.packageName,
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            appOps.checkOpNoThrow(
-                AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), activity.packageName,
-            )
-        }
-        return mode == AppOpsManager.MODE_ALLOWED
-    }
+    fun hasUsageAccess(): Boolean = hasUsageAccess(activity)
 
-    private fun notificationsEnabled(): Boolean {
+    fun notificationsEnabled(): Boolean {
         val manager = activity.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         return manager.areNotificationsEnabled()
     }
@@ -87,6 +74,22 @@ class PermissionGateway(private val activity: Activity) {
     }
 
     companion object {
+        fun hasUsageAccess(context: Context): Boolean {
+            val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+            val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                appOps.unsafeCheckOpNoThrow(
+                    AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), context.packageName,
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                appOps.checkOpNoThrow(
+                    AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), context.packageName,
+                )
+            }
+            return mode == AppOpsManager.MODE_ALLOWED
+        }
+
+
         const val NOTIFICATION_REQUEST = 4101
         const val USAGE_ACCESS = "usageAccess"
         const val NOTIFICATIONS = "notifications"

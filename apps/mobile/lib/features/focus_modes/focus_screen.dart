@@ -12,7 +12,9 @@ class FocusScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final focus = ref.watch(capabilityRegistryProvider).of(FeatureId.focusSessions);
+    final focus = ref
+        .watch(capabilityRegistryProvider)
+        .of(FeatureId.focusSessions);
     return Scaffold(
       appBar: AppBar(title: const Text('Focus')),
       body: PageBody(

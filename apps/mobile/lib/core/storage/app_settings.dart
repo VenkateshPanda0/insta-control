@@ -14,8 +14,23 @@ enum FrictionMode {
   final String summary;
 }
 
+/// An installed app the user chose to manage (Android).
+class ManagedApp {
+  const ManagedApp(this.label, {this.dailyLimitMinutes});
+  final String label;
+
+  /// Daily budget that triggers a reminder; null means no budget.
+  final int? dailyLimitMinutes;
+
+  Map<String, Object?> toJson() => {
+    'label': label,
+    'dailyLimitMinutes': ?dailyLimitMinutes,
+  };
+}
+
 class AppSettings {
   const AppSettings({
+    this.managedApps = const {},
     this.onboardingComplete = false,
     this.themeMode = AppThemeMode.system,
     this.goals = const {},
@@ -29,13 +44,18 @@ class AppSettings {
   final Set<String> managedPresets;
   final FrictionMode frictionMode;
 
+  /// Package name -> managed app.
+  final Map<String, ManagedApp> managedApps;
+
   AppSettings copyWith({
+    Map<String, ManagedApp>? managedApps,
     bool? onboardingComplete,
     AppThemeMode? themeMode,
     Set<String>? goals,
     Set<String>? managedPresets,
     FrictionMode? frictionMode,
   }) => AppSettings(
+    managedApps: managedApps ?? this.managedApps,
     onboardingComplete: onboardingComplete ?? this.onboardingComplete,
     themeMode: themeMode ?? this.themeMode,
     goals: goals ?? this.goals,
@@ -49,18 +69,38 @@ class AppSettings {
     'goals': goals.toList(),
     'managedPresets': managedPresets.toList(),
     'frictionMode': frictionMode.name,
+    'managedApps': {
+      for (final e in managedApps.entries) e.key: e.value.toJson(),
+    },
   };
 
   factory AppSettings.fromJson(Map<String, Object?> json) {
     Set<String> strings(Object? v) =>
         v is List ? v.whereType<String>().toSet() : const {};
+    final apps = <String, ManagedApp>{};
+    final rawApps = json['managedApps'];
+    if (rawApps is Map) {
+      rawApps.forEach((key, value) {
+        if (key is! String || value is! Map || value['label'] is! String) {
+          return;
+        }
+        final limit = value['dailyLimitMinutes'];
+        apps[key] = ManagedApp(
+          value['label'] as String,
+          dailyLimitMinutes: limit is int && limit > 0 ? limit : null,
+        );
+      });
+    }
     return AppSettings(
+      managedApps: apps,
       onboardingComplete: json['onboardingComplete'] == true,
-      themeMode: AppThemeMode.values.asNameMap()[json['themeMode']] ??
+      themeMode:
+          AppThemeMode.values.asNameMap()[json['themeMode']] ??
           AppThemeMode.system,
       goals: strings(json['goals']),
       managedPresets: strings(json['managedPresets']),
-      frictionMode: FrictionMode.values.asNameMap()[json['frictionMode']] ??
+      frictionMode:
+          FrictionMode.values.asNameMap()[json['frictionMode']] ??
           FrictionMode.gentle,
     );
   }

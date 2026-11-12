@@ -7,7 +7,9 @@ import '../../core/design_system/tokens.dart';
 import '../../core/design_system/widgets.dart';
 import '../../core/navigation/router.dart';
 import '../../core/platform_capabilities/capability.dart';
+import '../../core/usage/usage_models.dart';
 import '../../shared/catalog.dart';
+import '../../shared/usage_widgets.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -17,9 +19,18 @@ class HomeScreen extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
     final registry = ref.watch(capabilityRegistryProvider);
     final usage = registry.of(FeatureId.usageReporting);
+    final report = ref.watch(usageReportProvider);
+    final data = report.value;
     final theme = Theme.of(context);
     final goals = goalOptions.where((g) => settings.goals.contains(g.id));
-    final apps = appPresets.where((p) => settings.managedPresets.contains(p.id));
+    final apps = settings.managedApps.isNotEmpty
+        ? [
+            for (final a in settings.managedApps.values)
+              AppPreset(a.label, a.label, Icons.apps_outlined),
+          ]
+        : appPresets
+              .where((p) => settings.managedPresets.contains(p.id))
+              .toList();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Home')),
@@ -34,6 +45,36 @@ class HomeScreen extends ConsumerWidget {
               message: usage.reason.isEmpty
                   ? 'Unscroll will only show usage measured by your device.'
                   : usage.reason,
+            )
+          else if (data == null)
+            report.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : const EmptyState(
+                    icon: Icons.error_outline,
+                    title: 'Couldn\'t read usage',
+                    message: 'Open the app again to retry.',
+                  )
+          else
+            UCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Screen time today',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  Text(
+                    formatDuration(data.today),
+                    style: theme.textTheme.displaySmall,
+                  ),
+                  if (data.todayApps.isNotEmpty)
+                    const SizedBox(height: Space.sm),
+                  for (final app in data.todayApps.take(3))
+                    AppUsageRow(app, max: data.todayApps.first.duration),
+                ],
+              ),
             ),
           const SectionHeader('Your goals'),
           if (goals.isEmpty)

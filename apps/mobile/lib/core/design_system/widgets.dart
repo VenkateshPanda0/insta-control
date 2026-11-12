@@ -29,9 +29,8 @@ class SectionHeader extends StatelessWidget {
       header: true,
       child: Text(
         title,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
+        style: Theme.of(context).textTheme.titleMedium
+            ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
     ),
   );
@@ -48,7 +47,9 @@ class StatusPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: positive ? scheme.primaryContainer : scheme.surfaceContainerHighest,
+        color: positive
+            ? scheme.primaryContainer
+            : scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(Radii.pill),
       ),
       child: Text(
@@ -84,7 +85,10 @@ class CapabilityNotice extends StatelessWidget {
             spacing: Space.sm,
             runSpacing: Space.xs,
             children: [
-              StatusPill(capability.status.label, positive: capability.isUsable),
+              StatusPill(
+                capability.status.label,
+                positive: capability.isUsable,
+              ),
               if (capability.source != LimitationSource.none)
                 StatusPill(capability.source.label),
             ],

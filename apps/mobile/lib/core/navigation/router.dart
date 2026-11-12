@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app/providers.dart';
+import '../../features/app_controls/app_picker_screen.dart';
 import '../../features/app_controls/apps_screen.dart';
 import '../../features/dashboard/home_screen.dart';
 import '../../features/focus_modes/focus_screen.dart';
@@ -17,6 +18,7 @@ abstract final class Routes {
   static const onboarding = '/onboarding';
   static const home = '/home';
   static const apps = '/apps';
+  static const appPicker = '/apps/pick';
   static const focus = '/focus';
   static const insights = '/insights';
   static const settings = '/settings';
@@ -35,12 +37,13 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
   ref.onDispose(onboarded.dispose);
 
-  StatefulShellBranch branch(String path, Widget screen, [List<RouteBase>? sub]) =>
-      StatefulShellBranch(
-        routes: [
-          GoRoute(path: path, builder: (_, _) => screen, routes: sub ?? []),
-        ],
-      );
+  StatefulShellBranch branch(
+    String path,
+    Widget screen, [
+    List<RouteBase>? sub,
+  ]) => StatefulShellBranch(
+    routes: [GoRoute(path: path, builder: (_, _) => screen, routes: sub ?? [])],
+  );
 
   return GoRouter(
     initialLocation: Routes.home,
@@ -59,7 +62,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _, shell) => AppShell(shell: shell),
         branches: [
           branch(Routes.home, const HomeScreen()),
-          branch(Routes.apps, const AppsScreen()),
+          branch(Routes.apps, const AppsScreen(), [
+            GoRoute(path: 'pick', builder: (_, _) => const AppPickerScreen()),
+          ]),
           branch(Routes.focus, const FocusScreen()),
           branch(Routes.insights, const InsightsScreen()),
           branch(Routes.settings, const SettingsScreen(), [
