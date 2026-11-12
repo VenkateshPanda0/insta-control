@@ -1,6 +1,6 @@
 # Unscroll Android APK
 
-`unscroll-1.0.0.apk` — release build of version 1.0.0 (build 1), for Android 8.0 or later.
+`unscroll-1.0.1.apk` — release build of version 1.0.1 (build 2), for Android 8.0 or later.
 
 ## Install
 
@@ -13,8 +13,10 @@
 
 - **For testing only.** It is signed with the Android debug key, so it can be
   installed directly but cannot be uploaded to Google Play.
-- **Not yet run on a device.** The build and automated tests pass, but nobody
-  has installed and used this APK on a phone or emulator yet.
+- **Fix in 1.0.1:** version 1.0.0 crashed on launch (the release build removed a
+  class that the reminder scheduler needs). 1.0.1 was installed and launched on
+  an Android 11 emulator and shows the welcome screen. It has not been tried on
+  a real phone yet, so please report anything that still fails.
 - Rules on Android send reminders; they do not block apps.
 - There is no iOS build here; that needs a Mac with Xcode.
 
@@ -23,5 +25,5 @@
 ```bash
 cd apps/mobile
 flutter build apk --release
-cp build/app/outputs/flutter-apk/app-release.apk ../../apk/unscroll-1.0.0.apk
+cp build/app/outputs/flutter-apk/app-release.apk ../../apk/unscroll-1.0.1.apk
 ```
