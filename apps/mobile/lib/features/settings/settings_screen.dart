@@ -17,8 +17,9 @@ class SettingsScreen extends ConsumerWidget {
       builder: (context) => AlertDialog(
         title: const Text('Delete all Unscroll data?'),
         content: const Text(
-          'This removes your goals, app list and preferences from this '
-          'device and returns you to setup. System permissions are not '
+          'This removes your goals, rules, focus history, app list and '
+          'preferences from this device, ends any running session and '
+          'returns you to setup. System permissions are not '
           'changed; you can turn those off in system settings.',
         ),
         actions: [
@@ -75,6 +76,17 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                 ],
               ),
+            ),
+          ),
+          const SectionHeader('Goals'),
+          Card(
+            clipBehavior: Clip.antiAlias,
+            child: SwitchListTile(
+              title: const Text('Show streaks'),
+              subtitle: const Text('Count days in a row on goal cards'),
+              value: settings.showStreaks,
+              onChanged: (v) =>
+                  controller.update((s) => s.copyWith(showStreaks: v)),
             ),
           ),
           const SectionHeader('Device'),

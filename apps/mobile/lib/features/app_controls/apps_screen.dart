@@ -7,9 +7,10 @@ import '../../core/design_system/tokens.dart';
 import '../../core/design_system/widgets.dart';
 import '../../core/navigation/router.dart';
 import '../../core/platform_capabilities/capability.dart';
-import '../../core/storage/app_settings.dart';
 import '../../core/usage/usage_models.dart';
 import '../../shared/catalog.dart';
+import '../rules/rule_builder_screen.dart';
+import '../rules/rules_section.dart';
 
 class AppsScreen extends ConsumerWidget {
   const AppsScreen({super.key});
@@ -35,6 +36,8 @@ class AppsScreen extends ConsumerWidget {
             const SizedBox(height: Space.sm),
             CapabilityNotice(selection),
           ],
+          const SectionHeader('Rules'),
+          const RulesSection(),
           const SectionHeader('What this device allows'),
           // On iOS the working control above already covers blocking.
           if (!blocking.isUsable) ...[
@@ -55,6 +58,9 @@ class _AndroidManagedApps extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final managed = ref.watch(settingsProvider.select((s) => s.managedApps));
     final usage = ref.watch(usageReportProvider).value;
+    final rules = ref.watch(rulesProvider);
+    int ruleCount(String package) =>
+        rules.where((r) => r.targets.containsKey(package)).length;
     final entries = managed.entries.toList()
       ..sort(
         (a, b) =>
@@ -81,9 +87,11 @@ class _AndroidManagedApps extends ConsumerWidget {
                       [
                         if (usage != null)
                           '${formatDuration(usage.usageFor(e.key))} today',
-                        e.value.dailyLimitMinutes == null
-                            ? 'No budget'
-                            : 'Reminder at ${e.value.dailyLimitMinutes} min',
+                        switch (ruleCount(e.key)) {
+                          0 => 'No rules',
+                          1 => '1 rule',
+                          final n => '$n rules',
+                        },
                       ].join(' · '),
                     ),
                     trailing: const Icon(Icons.chevron_right),
@@ -91,7 +99,7 @@ class _AndroidManagedApps extends ConsumerWidget {
                       context: context,
                       showDragHandle: true,
                       isScrollControlled: true,
-                      builder: (_) => _BudgetSheet(packageName: e.key),
+                      builder: (_) => _AppSheet(packageName: e.key),
                     ),
                   ),
               ],
@@ -108,77 +116,41 @@ class _AndroidManagedApps extends ConsumerWidget {
   }
 }
 
-class _BudgetSheet extends ConsumerWidget {
-  const _BudgetSheet({required this.packageName});
+class _AppSheet extends ConsumerWidget {
+  const _AppSheet({required this.packageName});
   final String packageName;
-  static const _options = [15, 30, 45, 60, 90, 120];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final app = ref.watch(
       settingsProvider.select((s) => s.managedApps[packageName]),
     );
-    final reminders = ref
-        .watch(capabilityRegistryProvider)
-        .of(FeatureId.reminders);
     if (app == null) return const SizedBox.shrink();
-    final theme = Theme.of(context);
-
-    void setLimit(int? minutes) => ref
-        .read(settingsProvider.notifier)
-        .update(
-          (s) => s.copyWith(
-            managedApps: {
-              ...s.managedApps,
-              packageName: ManagedApp(app.label, dailyLimitMinutes: minutes),
-            },
-          ),
-        );
-
     return SafeArea(
-      child: SingleChildScrollView(
+      child: Padding(
         padding: const EdgeInsets.fromLTRB(Space.lg, 0, Space.lg, Space.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(app.label, style: theme.textTheme.titleLarge),
+            Text(app.label, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: Space.md),
-            if (reminders.isUsable) ...[
-              Text('Daily budget reminder', style: theme.textTheme.titleMedium),
-              const SizedBox(height: Space.xs),
-              Text(
-                'Unscroll sends one notification when you reach the budget. '
-                'This is a reminder, not a block: the app stays usable. '
-                '${reminders.reason}',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: Space.md),
-              Wrap(
-                spacing: Space.sm,
-                runSpacing: Space.sm,
-                children: [
-                  ChoiceChip(
-                    label: const Text('Off'),
-                    selected: app.dailyLimitMinutes == null,
-                    onSelected: (_) => setLimit(null),
-                  ),
-                  for (final m in _options)
-                    ChoiceChip(
-                      label: Text('$m min'),
-                      selected: app.dailyLimitMinutes == m,
-                      onSelected: (_) => setLimit(m),
-                    ),
-                ],
-              ),
-            ] else
-              CapabilityNotice(reminders),
-            const SizedBox(height: Space.lg),
+            FilledButton.tonalIcon(
+              onPressed: () {
+                Navigator.pop(context);
+                context.go(
+                  Routes.ruleBuilder,
+                  extra: RuleBuilderArgs(presetPackage: packageName),
+                );
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Add a rule for this app'),
+            ),
+            const SizedBox(height: Space.sm),
             TextButton.icon(
               onPressed: () {
                 Navigator.pop(context);
+                ref.read(rulesProvider.notifier).removeTarget(packageName);
                 ref
                     .read(settingsProvider.notifier)
                     .update(

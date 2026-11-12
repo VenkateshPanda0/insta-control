@@ -6,6 +6,7 @@ import '../../core/design_system/tokens.dart';
 import '../../core/design_system/widgets.dart';
 import '../../core/platform_capabilities/capability.dart';
 import '../../shared/usage_widgets.dart';
+import '../goals/goals_section.dart';
 
 class InsightsScreen extends ConsumerWidget {
   const InsightsScreen({super.key});
@@ -25,7 +26,9 @@ class InsightsScreen extends ConsumerWidget {
         onRefresh: () => ref.refresh(usageReportProvider.future),
         child: PageBody(
           children: [
-            const SizedBox(height: Space.md),
+            const SectionHeader('Goals'),
+            const GoalsSection(),
+            const SectionHeader('Usage'),
             if (!usage.isUsable) ...[
               const EmptyState(
                 icon: Icons.insights_outlined,

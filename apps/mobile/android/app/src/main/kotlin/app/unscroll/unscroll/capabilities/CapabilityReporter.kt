@@ -28,13 +28,13 @@ class CapabilityReporter(private val permissions: PermissionGateway) {
         }
         val reminders = when {
             !permissions.hasUsageAccess() ->
-                entry("requiresAuthorization", "none", "Needs usage access to know when a budget is reached.")
+                entry("requiresAuthorization", "none", "Needs usage access to know when a rule applies.")
             !permissions.notificationsEnabled() ->
                 entry("requiresAuthorization", "none", "Allow notifications in Permissions to get reminders.")
             else -> entry(
                 "supportedWithLimitations", "android",
-                "Android checks budgets in the background about every 15 minutes, and less often " +
-                    "when saving battery, so a reminder can arrive late.",
+                "Android checks your rules in the background about every 15 minutes, and less " +
+                    "often when saving battery, so a reminder can arrive late.",
             )
         }
         return mapOf(
@@ -59,11 +59,12 @@ class CapabilityReporter(private val permissions: PermissionGateway) {
                 "Other apps do not let outside apps change or hide parts of their screens.",
             ),
             "reminders" to reminders,
-            "focusSessions" to notBuilt("Focus sessions are not built into this version yet."),
+            "focusSessions" to entry(
+                "supportedWithLimitations", "android",
+                "Timer and history. Android can't restrict apps during a session.",
+            ),
         )
     }
-
-    private fun notBuilt(reason: String) = entry("unavailable", "unscrollBuild", reason)
 
     private fun entry(status: String, source: String, reason: String) =
         mapOf("status" to status, "source" to source, "reason" to reason)

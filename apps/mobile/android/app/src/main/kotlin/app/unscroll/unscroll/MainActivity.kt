@@ -34,10 +34,21 @@ class MainActivity : FlutterActivity() {
                         if (!permissions.hasUsageAccess()) throw SecurityException("no usage access")
                         UsageReader(this).report()
                     }
-                    "syncBudgets" -> guarded(result) {
+                    "syncPlan" -> guarded(result) {
                         @Suppress("UNCHECKED_CAST")
-                        val budgets = call.argument<Map<String, Map<String, Any?>>>("budgets") ?: emptyMap()
-                        BudgetReminders.sync(this, budgets)
+                        BudgetReminders.sync(this, call.arguments as? Map<String, Any?> ?: emptyMap())
+                        null
+                    }
+                    "scheduleSessionEnd" -> guarded(result) {
+                        BudgetReminders.scheduleSessionEnd(
+                            this,
+                            call.argument<Number>("atMs")?.toLong() ?: 0L,
+                            call.argument<String>("title") ?: "Focus session finished",
+                        )
+                        null
+                    }
+                    "cancelSessionEnd" -> guarded(result) {
+                        BudgetReminders.cancelSessionEnd(this)
                         null
                     }
                     else -> result.notImplemented()

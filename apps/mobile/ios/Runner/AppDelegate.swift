@@ -35,6 +35,15 @@ enum PlatformChannel {
       case "requestPermission":
         let args = call.arguments as? [String: Any]
         requestPermission(args?["permission"] as? String, result)
+      case "scheduleSessionEnd":
+        let args = call.arguments as? [String: Any]
+        let atMs = (args?["atMs"] as? NSNumber)?.doubleValue ?? 0
+        scheduleSessionEnd(atMs: atMs, title: args?["title"] as? String ?? "Focus session finished")
+        result(nil)
+      case "cancelSessionEnd":
+        UNUserNotificationCenter.current()
+          .removePendingNotificationRequests(withIdentifiers: [sessionEndId])
+        result(nil)
       case "presentAppPicker", "getSelectionSummary", "setShieldActive":
         #if canImport(FamilyControls)
         if #available(iOS 16.0, *) {
@@ -56,6 +65,23 @@ enum PlatformChannel {
         result(FlutterMethodNotImplemented)
       }
     }
+  }
+
+  // MARK: Focus session notification
+
+  private static let sessionEndId = "session-end"
+
+  /// Delivered by iOS only if the user has allowed notifications.
+  private static func scheduleSessionEnd(atMs: Double, title: String) {
+    let content = UNMutableNotificationContent()
+    content.title = title
+    content.body = "Open Unscroll to see your session."
+    content.sound = .default
+    let seconds = max(1, atMs / 1000 - Date().timeIntervalSince1970)
+    let request = UNNotificationRequest(
+      identifier: sessionEndId, content: content,
+      trigger: UNTimeIntervalNotificationTrigger(timeInterval: seconds, repeats: false))
+    UNUserNotificationCenter.current().add(request)
   }
 
   // MARK: Report
@@ -127,10 +153,12 @@ enum PlatformChannel {
         "Other apps do not let outside apps change or hide parts of their screens."),
       "reminders": entry(
         "unavailable", "unscrollBuild",
-        "Reminder notifications are not built into this version yet."),
+        "Usage and time-of-day rules need Unscroll's Screen Time extensions, which are not "
+          + "part of this build yet."),
       "focusSessions": entry(
-        "unavailable", "unscrollBuild",
-        "Focus sessions are not built into this version yet."),
+        "supportedWithLimitations", "ios",
+        "Timer and history. A mode can restrict your chosen apps while Screen Time access "
+          + "is allowed; when time is up, open Unscroll to lift the restriction."),
     ]
   }
 

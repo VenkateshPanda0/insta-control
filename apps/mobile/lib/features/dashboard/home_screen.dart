@@ -10,6 +10,7 @@ import '../../core/platform_capabilities/capability.dart';
 import '../../core/usage/usage_models.dart';
 import '../../shared/catalog.dart';
 import '../../shared/usage_widgets.dart';
+import '../goals/goals_section.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -21,6 +22,8 @@ class HomeScreen extends ConsumerWidget {
     final usage = registry.of(FeatureId.usageReporting);
     final report = ref.watch(usageReportProvider);
     final data = report.value;
+    final tracked = ref.watch(goalsProvider);
+    final session = ref.watch(focusProvider.select((f) => f.active));
     final theme = Theme.of(context);
     final goals = goalOptions.where((g) => settings.goals.contains(g.id));
     final apps = settings.managedApps.isNotEmpty
@@ -36,6 +39,25 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Home')),
       body: PageBody(
         children: [
+          if (session != null) ...[
+            const SizedBox(height: Space.md),
+            UCard(
+              onTap: () => context.go(Routes.focus),
+              child: Row(
+                children: [
+                  Icon(Icons.timelapse, color: theme.colorScheme.primary),
+                  const SizedBox(width: Space.md),
+                  Expanded(
+                    child: Text(
+                      '${session.modeName} session in progress',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right),
+                ],
+              ),
+            ),
+          ],
           const SectionHeader('Today'),
           // No usage number is shown unless the device really measured it.
           if (!usage.isUsable)
@@ -77,11 +99,18 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
           const SectionHeader('Your goals'),
-          if (goals.isEmpty)
+          for (final goal in tracked.take(2))
+            Padding(
+              padding: const EdgeInsets.only(bottom: Space.sm),
+              child: GoalCard(goal),
+            ),
+          if (tracked.isNotEmpty)
+            const SizedBox.shrink()
+          else if (goals.isEmpty)
             const EmptyState(
               icon: Icons.flag_outlined,
               title: 'No goals yet',
-              message: 'Goals you choose will appear here.',
+              message: 'Add a goal from the Insights tab.',
             )
           else
             UCard(

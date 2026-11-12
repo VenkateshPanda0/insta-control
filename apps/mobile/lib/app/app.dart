@@ -11,7 +11,7 @@ class UnscrollApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(budgetSyncProvider);
+    ref.watch(planSyncProvider);
     final mode = ref.watch(settingsProvider.select((s) => s.themeMode));
     return MaterialApp.router(
       title: 'Unscroll',

@@ -19,8 +19,15 @@ class UsageReader(private val context: Context) {
         return List(count) { cal.timeInMillis.also { cal.add(Calendar.DAY_OF_YEAR, 1) } }
     }
 
+    /** Foreground milliseconds per package since [start]. */
+    fun usageSince(start: Long): Map<String, Long> = aggregate(listOf(start)).first()
+
     private fun usageByDay(dayCount: Int): Pair<List<Long>, List<Map<String, Long>>> {
         val starts = dayStarts(dayCount)
+        return starts to aggregate(starts)
+    }
+
+    private fun aggregate(starts: List<Long>): List<Map<String, Long>> {
         val now = System.currentTimeMillis()
         val manager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
         val raw = manager.queryEvents(starts.first(), now)
@@ -40,7 +47,7 @@ class UsageReader(private val context: Context) {
                 ForegroundEvent(event.packageName ?: "", event.className ?: "", kind, event.timeStamp),
             )
         }
-        return starts to UsageAggregator.aggregate(events, starts, now)
+        return UsageAggregator.aggregate(events, starts, now)
     }
 
     /** Today's foreground milliseconds per package. */

@@ -19,7 +19,7 @@ class ManagedApp {
   const ManagedApp(this.label, {this.dailyLimitMinutes});
   final String label;
 
-  /// Daily budget that triggers a reminder; null means no budget.
+  /// Legacy (Phase 2) budget, migrated into a rule on first load.
   final int? dailyLimitMinutes;
 
   Map<String, Object?> toJson() => {
@@ -31,6 +31,7 @@ class ManagedApp {
 class AppSettings {
   const AppSettings({
     this.managedApps = const {},
+    this.showStreaks = true,
     this.onboardingComplete = false,
     this.themeMode = AppThemeMode.system,
     this.goals = const {},
@@ -47,8 +48,12 @@ class AppSettings {
   /// Package name -> managed app.
   final Map<String, ManagedApp> managedApps;
 
+  /// Streaks are optional; some people find them unhelpful.
+  final bool showStreaks;
+
   AppSettings copyWith({
     Map<String, ManagedApp>? managedApps,
+    bool? showStreaks,
     bool? onboardingComplete,
     AppThemeMode? themeMode,
     Set<String>? goals,
@@ -56,6 +61,7 @@ class AppSettings {
     FrictionMode? frictionMode,
   }) => AppSettings(
     managedApps: managedApps ?? this.managedApps,
+    showStreaks: showStreaks ?? this.showStreaks,
     onboardingComplete: onboardingComplete ?? this.onboardingComplete,
     themeMode: themeMode ?? this.themeMode,
     goals: goals ?? this.goals,
@@ -69,6 +75,7 @@ class AppSettings {
     'goals': goals.toList(),
     'managedPresets': managedPresets.toList(),
     'frictionMode': frictionMode.name,
+    'showStreaks': showStreaks,
     'managedApps': {
       for (final e in managedApps.entries) e.key: e.value.toJson(),
     },
@@ -93,6 +100,7 @@ class AppSettings {
     }
     return AppSettings(
       managedApps: apps,
+      showStreaks: json['showStreaks'] != false,
       onboardingComplete: json['onboardingComplete'] == true,
       themeMode:
           AppThemeMode.values.asNameMap()[json['themeMode']] ??

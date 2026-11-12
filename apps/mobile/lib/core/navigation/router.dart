@@ -9,6 +9,7 @@ import '../../features/dashboard/home_screen.dart';
 import '../../features/focus_modes/focus_screen.dart';
 import '../../features/insights/insights_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
+import '../../features/rules/rule_builder_screen.dart';
 import '../../features/settings/capabilities_screen.dart';
 import '../../features/settings/permissions_screen.dart';
 import '../../features/settings/settings_screen.dart';
@@ -19,6 +20,7 @@ abstract final class Routes {
   static const home = '/home';
   static const apps = '/apps';
   static const appPicker = '/apps/pick';
+  static const ruleBuilder = '/apps/rule';
   static const focus = '/focus';
   static const insights = '/insights';
   static const settings = '/settings';
@@ -64,6 +66,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           branch(Routes.home, const HomeScreen()),
           branch(Routes.apps, const AppsScreen(), [
             GoRoute(path: 'pick', builder: (_, _) => const AppPickerScreen()),
+            GoRoute(
+              path: 'rule',
+              builder: (_, state) =>
+                  RuleBuilderScreen(args: state.extra as RuleBuilderArgs?),
+            ),
           ]),
           branch(Routes.focus, const FocusScreen()),
           branch(Routes.insights, const InsightsScreen()),

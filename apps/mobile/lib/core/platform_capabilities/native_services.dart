@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 
-import '../storage/app_settings.dart';
+import '../rule_engine/engine.dart';
 import '../usage/usage_models.dart';
 import 'platform_capability_service.dart';
 
@@ -41,7 +41,7 @@ class TokenSelectionSummary {
 /// All methods return null / empty on failure instead of throwing, so a
 /// native problem can never crash the shared UI.
 abstract interface class UsageReportingService {
-  Future<UsageReport?> fetchReport();
+  Future<UsageReport?> fetchUsage();
 }
 
 abstract interface class ApplicationSelectionService {
@@ -57,8 +57,12 @@ abstract interface class RestrictionService {
   /// iOS: shield (or unshield) the selected apps now.
   Future<TokenSelectionSummary?> setShieldActive(bool active);
 
-  /// Android: hand daily budgets to the background reminder check.
-  Future<void> syncBudgets(Map<String, ManagedApp> apps);
+  /// Android: hand the compiled rules to the background reminder check.
+  Future<void> syncPlan(NativePlan plan);
+
+  /// Notify when a focus session ends, if notifications are allowed.
+  Future<void> scheduleSessionEnd(DateTime at, String modeName);
+  Future<void> cancelSessionEnd();
 }
 
 class MethodChannelNativeServices
@@ -83,7 +87,7 @@ class MethodChannelNativeServices
   );
 
   @override
-  Future<UsageReport?> fetchReport() async {
+  Future<UsageReport?> fetchUsage() async {
     final map = await _map('getUsageReport');
     return map == null ? null : UsageReport.fromMap(map);
   }
@@ -115,16 +119,19 @@ class MethodChannelNativeServices
       );
 
   @override
-  Future<void> syncBudgets(Map<String, ManagedApp> apps) => _guard(
-    () => platformChannel.invokeMethod<void>('syncBudgets', {
-      'budgets': {
-        for (final e in apps.entries)
-          if (e.value.dailyLimitMinutes != null)
-            e.key: {
-              'label': e.value.label,
-              'minutes': e.value.dailyLimitMinutes,
-            },
-      },
+  Future<void> syncPlan(NativePlan plan) => _guard(
+    () => platformChannel.invokeMethod<void>('syncPlan', plan.toMap()),
+  );
+
+  @override
+  Future<void> scheduleSessionEnd(DateTime at, String modeName) => _guard(
+    () => platformChannel.invokeMethod<void>('scheduleSessionEnd', {
+      'atMs': at.millisecondsSinceEpoch,
+      'title': '$modeName session finished',
     }),
   );
+
+  @override
+  Future<void> cancelSessionEnd() =>
+      _guard(() => platformChannel.invokeMethod<void>('cancelSessionEnd'));
 }

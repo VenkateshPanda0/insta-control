@@ -21,7 +21,13 @@ class _AppShellState extends ConsumerState<AppShell> {
     // Permissions can change while the user is in system settings, so
     // re-check the device every time the app returns to the foreground.
     _lifecycle = AppLifecycleListener(
-      onResume: () => ref.read(platformReportProvider.notifier).refresh(),
+      onResume: () {
+        ref.read(platformReportProvider.notifier).refresh();
+        ref.read(focusProvider.notifier).finishIfDue();
+      },
+    );
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => ref.read(focusProvider.notifier).finishIfDue(),
     );
   }
 
