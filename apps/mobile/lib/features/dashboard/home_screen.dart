@@ -1,0 +1,104 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
+
+import '../../app/providers.dart';
+import '../../core/design_system/tokens.dart';
+import '../../core/design_system/widgets.dart';
+import '../../core/navigation/router.dart';
+import '../../core/platform_capabilities/capability.dart';
+import '../../shared/catalog.dart';
+
+class HomeScreen extends ConsumerWidget {
+  const HomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(settingsProvider);
+    final registry = ref.watch(capabilityRegistryProvider);
+    final usage = registry.of(FeatureId.usageReporting);
+    final theme = Theme.of(context);
+    final goals = goalOptions.where((g) => settings.goals.contains(g.id));
+    final apps = appPresets.where((p) => settings.managedPresets.contains(p.id));
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Home')),
+      body: PageBody(
+        children: [
+          const SectionHeader('Today'),
+          // No usage number is shown unless the device really measured it.
+          if (!usage.isUsable)
+            EmptyState(
+              icon: Icons.hourglass_empty,
+              title: 'Screen time isn\'t available yet',
+              message: usage.reason.isEmpty
+                  ? 'Unscroll will only show usage measured by your device.'
+                  : usage.reason,
+            ),
+          const SectionHeader('Your goals'),
+          if (goals.isEmpty)
+            const EmptyState(
+              icon: Icons.flag_outlined,
+              title: 'No goals yet',
+              message: 'Goals you choose will appear here.',
+            )
+          else
+            UCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final g in goals)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: Space.xs),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.flag_outlined,
+                            size: 20,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: Space.sm),
+                          Expanded(child: Text(g.title)),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          const SectionHeader('Apps on your list'),
+          if (apps.isEmpty)
+            const EmptyState(
+              icon: Icons.apps_outlined,
+              title: 'No apps chosen',
+              message: 'Add apps you want to manage from the Apps tab.',
+            )
+          else
+            Wrap(
+              spacing: Space.sm,
+              runSpacing: Space.sm,
+              children: [
+                for (final p in apps)
+                  Chip(avatar: Icon(p.icon, size: 18), label: Text(p.name)),
+              ],
+            ),
+          const SectionHeader('This device'),
+          UCard(
+            onTap: () => context.go(Routes.capabilities),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${registry.all.where((c) => c.isUsable).length} of '
+                    '${registry.all.length} features are usable on this '
+                    'device right now. See why.',
+                  ),
+                ),
+                const Icon(Icons.chevron_right),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
